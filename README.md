@@ -56,6 +56,8 @@ This YML file creates a web server with the latest version of WordPress. WordPre
 
 This YML file calls the previous stacks and builds the complete architecture.
 
+![alt text](https://drive.google.com/file/d/1aUolKpS_M7Bs6b9SkD1BT14IJzlWllf2/view?usp=sharing)
+
 ### Deployment
 
 The yml files of RDS, Ec2 and VPC should be stored in an S3. Only the main yml should be executed in cloudFormation.
