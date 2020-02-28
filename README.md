@@ -62,7 +62,7 @@ The yml files of RDS, Ec2 and VPC should be stored in an S3. Only the main yml s
  
 ## Authors
 
-* **Luis Sic** - *Initial work* - [PurpleBooth](https://github.com/PurpleBooth)
+* **Luis Sic** - *Tecnologia Transaccional* - [sluis117](https://github.com/LuisSic)
 
 ## License
 
