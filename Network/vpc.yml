@@ -1,0 +1,286 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Esto es una prueba de script
+
+Parameters:
+    EnvironmentName:
+      Description: An environment name that is prefixed to resource names
+      Type: String
+
+    VpcCIDR:
+      Description: CIDR para esta VPC 
+      Type: String
+      Default: 10.0.0.0/16
+    
+    PublicSubnet1CIDR:
+      Description: rango de ip para la primera subnet publica disponible
+      Type: String
+      Default: 10.0.1.0/24
+    
+    PublicSubnet2CIDR:
+      Description: rango de ip para la segunda subnet publica disponible
+      Type: String
+      Default: 10.0.2.0/24
+    
+    PublicSubnet3CIDR:
+      Description: rango de ip para la tercera subnet publica disponible
+      Type: String
+      Default: 10.0.3.0/24
+    
+    PrivateSubnet1CIDR:
+      Description: rango de ip para la primera subnet privada disponible
+      Type: String
+      Default: 10.0.4.0/24
+    
+    PrivateSubnet2CIDR:
+      Description: rango de ip para la segunda subnet privada disponible
+      Type: String
+      Default: 10.0.5.0/24
+
+    PrivateSubnet3CIDR:
+      Description: rango de ip para la tercera subnet privada disponible
+      Type: String
+      Default: 10.0.6.0/24
+
+Resources:
+    VPC:
+        Type: AWS::EC2::VPC
+        Properties:
+            CidrBlock: !Ref VpcCIDR
+            EnableDnsHostnames: true
+            EnableDnsSupport: true
+            Tags:
+                - Key: Name
+                  Value:  !Sub ${EnvironmentName}_VPC
+    
+    InternetGateway:
+        Type: AWS::EC2::InternetGateway
+        Properties:
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}_InternetGateway
+    
+    AttachInternetGateway:
+        Type: AWS::EC2::VPCGatewayAttachment
+        Properties:
+            InternetGatewayId: !Ref InternetGateway
+            VpcId: !Ref VPC #required
+    
+    PublicSubnet1:
+        Type: AWS::EC2::Subnet
+        Properties:
+            AvailabilityZone: "us-east-1a"
+            CidrBlock: !Ref PublicSubnet1CIDR #10.0.1.0/24 #required
+            MapPublicIpOnLaunch: true
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}_publicSubnet1
+            VpcId: !Ref VPC
+    
+    PublicSubnet2:
+        Type: AWS::EC2::Subnet
+        Properties:
+            AvailabilityZone: "us-east-1b"
+            CidrBlock: !Ref PublicSubnet2CIDR  #10.0.2.0/24 #required
+            MapPublicIpOnLaunch: true
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}_publicSubnet2
+            VpcId: !Ref VPC #required
+    
+    PublicSubnet3:
+        Type: AWS::EC2::Subnet
+        Properties:
+            AvailabilityZone: "us-east-1c"
+            CidrBlock: !Ref PublicSubnet3CIDR #10.0.3.0/24 #required
+            MapPublicIpOnLaunch: true
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}_publicSubnet3
+            VpcId: !Ref VPC #required
+    
+    PrivateSubnet1:
+        Type: AWS::EC2::Subnet
+        Properties:
+            AvailabilityZone: "us-east-1d"
+            CidrBlock: !Ref PrivateSubnet1CIDR #10.0.4.0/24 #required
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}_privateSubnet1
+            VpcId: !Ref VPC #required
+    
+    PrivateSubnet2:
+        Type: AWS::EC2::Subnet
+        Properties:
+            AvailabilityZone: "us-east-1e"
+            CidrBlock: !Ref PrivateSubnet2CIDR #10.0.5.0/24 #required
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}_privateSubnet2
+            VpcId: !Ref VPC #required
+    
+    PrivateSubnet3:
+        Type: AWS::EC2::Subnet
+        Properties:
+            AvailabilityZone: "us-east-1f"
+            CidrBlock: !Ref PrivateSubnet3CIDR #10.0.6.0/24 #required
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}_privateSubnet3
+            VpcId: !Ref VPC #required
+    
+    PublicRouteTable:
+        Type: AWS::EC2::RouteTable
+        Properties:
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}_PublicRouteTable 
+            VpcId: !Ref VPC #required
+    
+    PrivateRouteTable:
+        Type: AWS::EC2::RouteTable
+        Properties:
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}_PrivateRouteTable
+            VpcId: !Ref VPC #required
+    
+    #Redirigiendo la Tabla de rutas publicas hacia IGW
+
+    PublicRoute1:
+        Type: AWS::EC2::Route
+        DependsOn: AttachInternetGateway
+        Properties:
+            DestinationCidrBlock: 0.0.0.0/0
+            GatewayId: !Ref InternetGateway
+            RouteTableId: !Ref PublicRouteTable  #required
+    
+    #Esto es para que las subredes privadas tengan acceso a internet a por medio de Nat Gateway
+    PrivateRoute1:
+        Type: AWS::EC2::Route
+        Properties:
+            DestinationCidrBlock: 0.0.0.0/0
+            NatGatewayId: !Ref NatGateway
+            RouteTableId: !Ref PrivateRouteTable #required
+
+    NatGateway:
+        Type: AWS::EC2::NatGateway
+        Properties:
+            AllocationId: !GetAtt EIP.AllocationId #required
+            SubnetId: !Ref PublicSubnet1 #required
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}_NatGateway
+    EIP:
+        Type: AWS::EC2::EIP
+        Properties:
+            Domain: VPC
+
+    PublicSubnet1RouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId: !Ref PublicRouteTable #required
+            SubnetId: !Ref PublicSubnet1 #required
+    
+    PublicSubnet2RouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId: !Ref PublicRouteTable #required
+            SubnetId: !Ref PublicSubnet2 #required
+    
+    PublicSubnet3RouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId: !Ref PublicRouteTable #required
+            SubnetId: !Ref PublicSubnet3 #required
+    
+    PrivateSubnet1RouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId: !Ref PrivateRouteTable #required
+            SubnetId: !Ref PrivateSubnet1 #required
+    
+    PrivateSubnet2RouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId: !Ref PrivateRouteTable #required
+            SubnetId: !Ref PrivateSubnet2 #required
+
+    PrivateSubnet3RouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId: !Ref PrivateRouteTable #required
+            SubnetId: !Ref PrivateSubnet3 #required
+
+    DBSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: Security group for my DB Mysql #required
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}_securityGroupRDS
+            VpcId: !Ref VPC
+    
+    DMZSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: SecurityGroup for my DMZ #required
+            SecurityGroupEgress:
+                - IpProtocol: -1
+                  CidrIp: 0.0.0.0/0
+            SecurityGroupIngress:
+                - IpProtocol: tcp
+                  FromPort: 22
+                  ToPort: 22
+                  CidrIp: 0.0.0.0/0
+                - IpProtocol: tcp
+                  FromPort: 80
+                  ToPort: 80
+                  CidrIp: 0.0.0.0/0
+            Tags:
+                - Key: Name
+                  Value: !Sub ${EnvironmentName}_securityGroupDMZ
+            VpcId: !Ref VPC        
+    
+    DBSecurityGroupInboundRule:
+        Type: AWS::EC2::SecurityGroupIngress
+        Properties:
+            FromPort: 3306
+            ToPort: 3306
+            IpProtocol: tcp #required
+            SourceSecurityGroupId: !GetAtt DMZSecurityGroup.GroupId
+            GroupId: !GetAtt DBSecurityGroup.GroupId
+Outputs:
+    VPC:
+      Description: A reference to the created VPC
+      Value: !Ref VPC
+    PublicSubnet1:
+      Description: A reference to the public subnet in the 1st Availability Zone
+      Value: !Ref PublicSubnet1
+    PublicSubnet2:
+      Description: A reference to the public subnet in the 2st Availability Zone
+      Value: !Ref PublicSubnet2
+    PublicSubnet3:
+      Description: A reference to the public subnet in the 3st Availability Zone
+      Value: !Ref PublicSubnet3
+    PublicSubnets:
+      Description: public subnets list
+      Value: !Join [ ",", [ !Ref PublicSubnet1, !Ref PublicSubnet2, !Ref PublicSubnet3] ]
+    PrivateSubnet1:
+      Description: A reference to the private subnet in the 1st Availability Zone
+      Value: !Ref PrivateSubnet1
+    PrivateSubnet2:
+      Description: A reference to the private subnet in the 2st Availability Zone
+      Value: !Ref PrivateSubnet2
+    PrivateSubnet3:
+      Description: A reference to the private subnet in the 3st Availability Zone
+      Value: !Ref PrivateSubnet3
+    PrivateSubnets:
+      Description: private subnets list
+      Value: !Join [ ",", [ !Ref PrivateSubnet1, !Ref PrivateSubnet2, !Ref PrivateSubnet3] ]
+    DBSecurityGroup:
+      Description: Security group for the DB
+      Value: !Ref DBSecurityGroup
+    DMZSecurityGroup:
+      Description: Security group for the DMZ
+      Value: !Ref DMZSecurityGroup
+      

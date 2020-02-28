@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Este es un script para levantar una RDS Mysql
+    
+Parameters:
+    DBType:
+      Description: Oracle, Mysql, SqlServer...
+      Type: String
+      Default: Mysql
+    DBVersion:
+      Description: Version for my DB
+      Type: String
+      Default: 8.0.16
+    DBInstanceID:
+      Description: Name for my DB instance
+      Type: String
+      Default: SluisMysql
+    DBName:
+      Description: Name for my Database 
+      Type: String
+      Default: lsic
+    DBInstanceClass:
+      Description: Power and memory requeriments
+      Type: String
+      Default: db.t2.micro
+    DBAllocatedStorage:
+      Description: Storage (GiB)
+      Type: String
+      Default: '20'
+    DBUsername:
+      Description: Username for Mysql database access 
+      Type: String
+      Default: 'luis'
+      NoEcho: 'true'
+    DBPassword:
+      Description: Password Mysql database access 
+      Type: String
+      Default: lsic123.
+    VPCSecurityGroup:
+      Description: Vpc security group for my db 
+      Type: String
+    PrivateSubnets:
+      Description: Subnets privates list
+      Type: CommaDelimitedList
+    
+Resources:
+    DBSubnetGroup:
+      Type: AWS::RDS::DBSubnetGroup
+      Properties:
+        DBSubnetGroupDescription: Private Subnets for my RDS #required
+        SubnetIds: !Ref PrivateSubnets
+    
+    
+    RDS:
+        Type: AWS::RDS::DBInstance
+        Properties:
+            AllocatedStorage: !Ref DBAllocatedStorage
+            DBInstanceClass: !Ref DBInstanceClass #required
+            DBInstanceIdentifier: !Ref DBInstanceID
+            DBName: !Ref DBName
+            DBSubnetGroupName: !Ref DBSubnetGroup 
+            Engine: !Ref DBType
+            EngineVersion: !Ref DBVersion
+            MasterUserPassword: !Ref DBPassword
+            MasterUsername: !Ref DBUsername
+            VPCSecurityGroups:
+              - !Ref VPCSecurityGroup 
+    
+Outputs:
+    DBName:
+      Description: A reference to the Name for my Database
+      Value: !Ref DBName
+    DBUsername:
+      Description: A reference to the Username for Mysql database access
+      Value: !Ref DBUsername
+    DBPassword:
+      Description: A reference to the Password Mysql database access
+      Value: !Ref DBPassword
+    RDSEndPoint:
+      Description: A reference to the DB EndPoint
+      Value: !GetAtt RDS.Endpoint.Address

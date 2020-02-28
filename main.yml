@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: This yml file call the other yml files (VPC, Database, Web Server)
+    
+Resources:
+    VPC:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: "https://sluis117.s3.amazonaws.com/vpc.yml" #required
+            Parameters:
+                VpcCIDR: 10.0.0.0/16
+                PublicSubnet1CIDR: 10.0.1.0/24
+                PublicSubnet2CIDR: 10.0.2.0/24
+                PublicSubnet3CIDR: 10.0.3.0/24
+                PrivateSubnet1CIDR: 10.0.4.0/24
+                PrivateSubnet2CIDR: 10.0.5.0/24
+                PrivateSubnet3CIDR: 10.0.6.0/24
+                EnvironmentName: sluis
+    RDSMysql:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: "https://sluis117.s3.amazonaws.com/mysql.yml" #required
+            Parameters:
+                DBType: Mysql
+                DBVersion: 8.0.16
+                DBInstanceID: SluisMysql
+                DBName: lsic
+                DBInstanceClass: db.t2.micro
+                DBAllocatedStorage: '20'
+                DBUsername: 'luis'
+                DBPassword: lsic123.
+                VPCSecurityGroup: !GetAtt VPC.Outputs.DBSecurityGroup
+                PrivateSubnets: !GetAtt VPC.Outputs.PrivateSubnets
+    EC2WebServer:
+        Type: AWS::CloudFormation::Stack
+        Properties:
+            TemplateURL: "https://sluis117.s3.amazonaws.com/wordpress.yml" #required
+            Parameters:
+                Ami: ami-0a887e401f7654935
+                EC2InstanceType: t2.micro
+                EC2KeyName: newsluis
+                EC2Name: wordPressSluis
+                DBName: !GetAtt RDSMysql.Outputs.DBName
+                DBUsername: !GetAtt RDSMysql.Outputs.DBUsername
+                DBPassword: !GetAtt RDSMysql.Outputs.DBPassword
+                DBEndPoint: !GetAtt RDSMysql.Outputs.RDSEndPoint
+                EC2SecurityGroup: !GetAtt VPC.Outputs.DMZSecurityGroup
+                EC2SubnetId: !GetAtt VPC.Outputs.PublicSubnet1

@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Script para levantar un servidor wordPress
+
+Parameters:
+  Ami:
+    Description: ami for my ec2 instance
+    Type: String
+    Default: ami-0a887e401f7654935
+  
+  EC2InstanceType:
+    Description: Instance Type
+    Type: String
+    Default: t2.micro
+  
+  EC2KeyName:
+    Description: Key for access ssh
+    Type: String
+    Default: newsluis
+  
+  EC2Name:
+    Description: Name for my ec2 instance
+    Type: String
+    Default: wordPressSluis
+  
+  DBName:
+    Description: Name for my Database 
+    Type: String
+
+  DBPassword:
+    Description: Password Mysql database access 
+    Type: String
+  
+  DBUsername:
+    Description: Username for Mysql database access 
+    Type: String
+    NoEcho: 'true'
+
+  DBEndPoint:
+    Description: Database Host
+    Type: String
+  
+  EC2SecurityGroup:
+    Description: security group for my ec2 instance in the VPC
+    Type: String
+  
+  EC2SubnetId:
+    Description: public subnet for my ec2 instance
+    Type: String
+  
+
+
+Resources:
+    wordPress:
+        Type: AWS::EC2::Instance
+        Properties:
+            ImageId: !Ref Ami
+            InstanceType: !Ref EC2InstanceType
+            KeyName: !Ref EC2KeyName
+            Tags:
+                - Key: Name
+                  Value: !Ref EC2Name
+            UserData: 
+                Fn::Base64: 
+                    !Sub  |
+                    #!/bin/bash
+                    yum update -y
+                    yum install httpd -y
+                    amazon-linux-extras install php7.2
+                    cd /var/www/html
+                    wget https://wordpress.org/latest.tar.gz
+                    tar -xzf latest.tar.gz
+                    cp -r wordpress/* /var/www/html/
+                    rm -rf wordpress
+                    rm -rf latest.tar.gz
+                    chmod -R 755 wp-content
+                    chown -R apache:apache wp-content
+                    sed -i 's/database_name_here/${DBName}/g' wp-config-sample.php
+                    sed -i 's/username_here/${DBUsername}/g' wp-config-sample.php
+                    sed -i 's/password_here/${DBPassword}/g' wp-config-sample.php
+                    sed -i 's/localhost/${DBEndPoint}/g' wp-config-sample.php
+                    mv wp-config-sample.php wp-config.php
+                    chkconfig httpd on
+                    service httpd start
+            NetworkInterfaces:
+                - AssociatePublicIpAddress: "true"
+                  DeviceIndex: "0"
+                  GroupSet: 
+                    - !Ref EC2SecurityGroup
+                  SubnetId: !Ref EC2SubnetId

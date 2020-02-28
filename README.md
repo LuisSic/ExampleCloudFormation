@@ -56,7 +56,7 @@ This YML file creates a web server with the latest version of WordPress. WordPre
 
 This YML file calls the previous stacks and builds the complete architecture.
 
-![alt text](https://drive.google.com/file/d/1aUolKpS_M7Bs6b9SkD1BT14IJzlWllf2/view?usp=sharing)
+ <img src="./Resources/CloudFormation.png" title="Architecture">
 
 ### Deployment
 
